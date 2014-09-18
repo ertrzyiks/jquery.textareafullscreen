@@ -18,27 +18,6 @@
         return $('.tx-editor-overlay').length > 0;
     }
 
-    function relocate(el) {
-        var yPos = ($(window).height() - el.height()) / 2;
-        var xPos = ($(window).width() - el.width()) / 2;
-
-        el.css({
-            'top': yPos,
-            'left': xPos
-        });
-    }
-
-    function transitions($el, $editor) {
-        relocate($editor);
-
-        if (isFullscreen()) {
-            $el.focus();
-        } else {
-            $el.focus();
-            $editor.css('opacity', 1);
-        }
-    }
-
     function FullscreenTextarea(el, opts) {
         var method,
             i;
@@ -48,7 +27,10 @@
         this.settings = {
             overlay: true,
             maxWidth: '',
-            maxHeight: ''
+            maxHeight: '',
+            getTopOffset: function () {
+                return 0;
+            }
         };
 
         for( i = 0; i < this.bindMethods.length; i++) {
@@ -58,6 +40,8 @@
 
         this.init(opts);
     }
+
+    FullscreenTextarea.prototype.bindMethods = ["onOverlayClick", "onIconClick", "onKeyUp", "onResize"];
 
     FullscreenTextarea.prototype.$el = null;
 
@@ -96,9 +80,6 @@
         this.$icon.on('click.txeditor.icon', this.onIconClick);
     };
 
-
-    FullscreenTextarea.prototype.bindMethods = ["onOverlayClick", "onIconClick", "onKeyUp", "onResize"];
-
     FullscreenTextarea.prototype.showOverlay = function () {
         $('<div class="tx-editor-overlay" />').appendTo('body')
             .fadeTo(0, 1)
@@ -132,7 +113,7 @@
         }
 
         $editor.addClass('expanded');
-        transitions(this.$el, this.$editor);
+        this.transitions();
 
         //Adjust editor size on resize
         $(window).on('resize.txeditor', this.onResize);
@@ -156,7 +137,7 @@
                 'max-height': 'none'
             });
 
-        transitions(this.$el, $editor);
+        this.transitions();
 
         if (settings.overlay) {
             this.removeOverlay();
@@ -205,7 +186,34 @@
     };
 
     FullscreenTextarea.prototype.onResize = function (e) {
-        relocate(this.$editor);
+        this.relocate();
+    };
+
+    FullscreenTextarea.prototype.relocate = function() {
+        var $editor = this.$editor,
+            settings = this.settings,
+            topOffset = settings.getTopOffset(),
+            yPos = topOffset + ($(window).height() - $editor.height() - topOffset) / 2,
+            xPos = ($(window).width() - $editor.width()) / 2;
+
+        $editor.css({
+            'top': yPos,
+            'left': xPos
+        });
+    };
+
+    FullscreenTextarea.prototype.transitions = function () {
+        var $el = this.$el,
+            $editor = this.$editor;
+
+        this.relocate();
+
+        if (isFullscreen()) {
+            $el.focus();
+        } else {
+            $el.focus();
+            $editor.css('opacity', 1);
+        }
     };
 
     $.fn.textareafullscreen = function(options) {
